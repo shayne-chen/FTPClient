@@ -10,8 +10,8 @@ class Window():
 		self.master.title("FTPClient")
 		self.master.geometry("800x600")
 		self.master.resizable(width=False, height=False)
-		self.frame1 = Frame(width=800, height=200)
-		self.frame2 = Frame(width=800, height=400, bg="green")
+		self.frame1 = Frame(width=800, height=250)
+		self.frame2 = Frame(width=800, height=350, bg="green")
 
 		#起止IP设置
 		self.start_ip = StringVar()
@@ -35,9 +35,16 @@ class Window():
 		self.entry_file = Entry(self.frame1, width=40, textvariable=self.filepath)
 		self.choose_file = Button(self.frame1, text="选择文件", fg="red", width=10, command=self.choose_file)
 
-		#提交按钮
-		self.submit = Button(self.frame1, text="提交", width=10, fg="green")
+		#文件的保存路径
+		self.file_savepath = StringVar()
+		self.label_file_savepath = Label(self.frame1, text="保存路径", fg="red")
+		self.entry_file_savepath = Entry(self.frame1, width=40, textvariable=self.file_savepath)
+		self.label_file_savepath_tips = Label(self.frame1, text="例如：/home/ubuntu/", fg='green')
 
+		#提交按钮
+		self.submit = Button(self.frame1, text="提交", width=10, fg="green", command=self.uploadfile)
+
+		#元件布局
 		self.frame1.grid(row=0, column=0)
 		self.frame2.grid(row=1,column=0)
 		self.frame1.grid_propagate(0)
@@ -53,27 +60,36 @@ class Window():
 		self.label_file.grid(row=2, column=0, padx=5, pady=10)
 		self.entry_file.grid(row=2, column=1, padx=5, pady=10)
 		self.choose_file.grid(row=2, column=2, padx=5, pady=10)
-		self.submit.grid(row=3, column=0, columnspan=5, pady=10)
+		self.label_file_savepath.grid(row=3, column=0, padx=5, pady=10)
+		self.entry_file_savepath.grid(row=3, column=1, padx=5, pady=10)
+		self.label_file_savepath_tips.grid(row=3, column=2, padx=5, pady=10)
+		self.submit.grid(row=4, column=0, columnspan=5, pady=10)
 
 		mainloop()
 
+
 	def choose_file(self):
 		filename = askopenfilename(filetypes=[("All Files", "*.*")])
-		self.filepath.set(filename)		
+		self.filepath.set(filename)
 
-"""
-ftp = FTP()
-#ftp.set_debuglevel(2)
-ftp.connect('192.178.3.2',21)
-ftp.login('root', 'root')
-print (ftp.getwelcome())
+	def uploadfile(self):
+		ftp = FTP()
+		ftp.set_debuglevel(2)
+		allip = []
+		start_ip = self.start_ip.get()
+		end_ip = self.end_ip.get()
+		ip_three_bytes = start_ip.split('.')[0] + '.' + start_ip.split('.')[1] + '.' + start_ip.split('.')[2] + '.'
+		for i in range(int(start_ip.split('.')[3]), int(end_ip.split('.')[3])+1):
+			allip.append(ip_three_bytes + str(i))
+		for ip in allip:
+			print (ip)
+			ftp.connect(ip, 21)
+			ftp.login(self.user.get(), self.password.get())
+			fp = open(self.filepath.get(), 'rb')
+			ftp.storbinary('STOR ' + self.entry_file_savepath.get() + self.filepath.get().split('/')[-1], fp, 1024)
+			ftp.set_debuglevel(2)
+			ftp.close()
 
-#ftp.cwd('/home/ubuntu/')
-bufsize = 1024
-fp = open("E:\OperateServer_LINUX-ARM-TK1_69691.tar.gz", 'rb')
-ftp.storbinary('STOR ' + '/home/ubuntu/' + 'OperateServer_LINUX-ARM-TK1_69691.tar.gz', fp, bufsize)
-ftp.set_debuglevel(2)
-ftp.close()
-"""
+
 if __name__ == '__main__':
 	Window()
