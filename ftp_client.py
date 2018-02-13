@@ -90,6 +90,8 @@ class Window():
 			ftp.set_debuglevel(2)
 			ftp.close()
 
+		messagebox.showinfo("Result", "Upload Finished!")
+
 
 if __name__ == '__main__':
 	Window()
