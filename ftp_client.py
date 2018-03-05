@@ -2,6 +2,10 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 from ftplib import FTP
+import paramiko
+from tkinter.scrolledtext import ScrolledText
+import tkinter as tk
+from tkinter import messagebox
 
 class Window():
 
@@ -10,8 +14,8 @@ class Window():
 		self.master.title("FTPClient")
 		self.master.geometry("800x600")
 		self.master.resizable(width=False, height=False)
-		self.frame1 = Frame(width=800, height=250)
-		self.frame2 = Frame(width=800, height=350, bg="green")
+		self.frame1 = Frame(width=800, height=270)
+		self.frame2 = Frame(width=800, height=330)
 
 		#起止IP设置
 		self.start_ip = StringVar()
@@ -41,8 +45,16 @@ class Window():
 		self.entry_file_savepath = Entry(self.frame1, width=40, textvariable=self.file_savepath)
 		self.label_file_savepath_tips = Label(self.frame1, text="例如：/home/ubuntu/", fg='green')
 
+		#测试指令
+		self.test_content = StringVar()
+		self.test_label = Label(self.frame1, text="输入指令", fg='red')
+		self.test_entry = Entry(self.frame1, width=40, textvariable=self.test_content)
+
 		#提交按钮
-		self.submit = Button(self.frame1, text="提交", width=10, fg="green", command=self.uploadfile)
+		self.submit = Button(self.frame1, text="提交", width=10, fg="green", command=self.test)
+
+		#结果显示框
+		self.text = ScrolledText(self.frame2, width=111, height=25, wrap=tk.WORD)
 
 		#元件布局
 		self.frame1.grid(row=0, column=0)
@@ -63,7 +75,10 @@ class Window():
 		self.label_file_savepath.grid(row=3, column=0, padx=5, pady=10)
 		self.entry_file_savepath.grid(row=3, column=1, padx=5, pady=10)
 		self.label_file_savepath_tips.grid(row=3, column=2, padx=5, pady=10)
-		self.submit.grid(row=4, column=0, columnspan=5, pady=10)
+		self.test_label.grid(row=4, column=0, pady=5)
+		self.test_entry.grid(row=4, column=1, pady=5)
+		self.submit.grid(row=5, column=0, columnspan=5, pady=10)
+		self.text.grid(row=0, column=0)
 
 		mainloop()
 
@@ -90,6 +105,29 @@ class Window():
 			ftp.set_debuglevel(2)
 			ftp.close()
 
+		messagebox.showinfo("Result", "上传完成！")
+
+	def test(self):
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		allip = []
+		start_ip = self.start_ip.get()
+		end_ip = self.end_ip.get()
+		if start_ip == '' or end_ip =='':
+			messagebox.showinfo("Warning!", "Iuput IP address")
+		ip_three_bytes = start_ip.split('.')[0] + '.' + start_ip.split('.')[1] + '.' + start_ip.split('.')[2] + '.'
+		for i in range(int(start_ip.split('.')[3]), int(end_ip.split('.')[3])+1):
+			allip.append(ip_three_bytes + str(i))
+		if self.test_content.get() == '':
+			messagebox.showinfo("Warning!", "Input Something !!!")
+		for host in allip:
+			ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
+			stdin, stdout, stderr = ssh.exec_command(self.test_content.get())
+			result = stdout.read()
+			self.text.insert(INSERT, host + '\n')
+			self.text.insert(INSERT, result)
+			ssh.close()
+		messagebox.showinfo("Result","OK!")
 
 if __name__ == '__main__':
 	Window()
