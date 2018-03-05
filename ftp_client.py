@@ -105,6 +105,7 @@ class Window():
 			ftp.set_debuglevel(2)
 			ftp.close()
 
+<<<<<<< HEAD
 		messagebox.showinfo("Result", "上传完成！")
 
 	def test(self):
@@ -128,6 +129,10 @@ class Window():
 			self.text.insert(INSERT, result)
 			ssh.close()
 		messagebox.showinfo("Result","OK!")
+=======
+		messagebox.showinfo("Result", "Upload Finished!")
+
+>>>>>>> 88c19feb1498d4015366325bc7034c659540ae56
 
 if __name__ == '__main__':
 	Window()
