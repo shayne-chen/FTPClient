@@ -14,8 +14,8 @@ class Window():
 		self.master.title("FTPClient")
 		self.master.geometry("800x600")
 		self.master.resizable(width=False, height=False)
-		self.frame1 = Frame(width=800, height=270)
-		self.frame2 = Frame(width=800, height=330)
+		self.frame1 = Frame(width=800, height=230)
+		self.frame2 = Frame(width=800, height=370)
 
 		#起止IP设置
 		self.start_ip = StringVar()
@@ -24,6 +24,8 @@ class Window():
 		self.entry_startip = Entry(self.frame1, width=40, textvariable=self.start_ip)
 		self.label_endip = Label(self.frame1, text="结束IP:", fg="red")
 		self.entry_endip = Entry(self.frame1, width=40, textvariable=self.end_ip)
+		self.start_ip.set('192.178.3.')
+		self.end_ip.set('192.178.3.')
 
 		#登录用户名及密码设置
 		self.user = StringVar()
@@ -32,6 +34,8 @@ class Window():
 		self.entry_user = Entry(self.frame1, width=40, textvariable=self.user)
 		self.label_password = Label(self.frame1, text="密码:", fg="red")
 		self.entry_password = Entry(self.frame1, width=40, textvariable=self.password)
+		self.user.set('root')
+		self.password.set('root')
 
 		#文件路径设置
 		self.filepath = StringVar()
@@ -44,6 +48,7 @@ class Window():
 		self.label_file_savepath = Label(self.frame1, text="保存路径", fg="red")
 		self.entry_file_savepath = Entry(self.frame1, width=40, textvariable=self.file_savepath)
 		self.label_file_savepath_tips = Label(self.frame1, text="例如：/home/ubuntu/", fg='green')
+		self.button_uploadfile = Button(self.frame1, text="上传", width=10, fg="red", command=self.uploadfile)
 
 		#测试指令
 		self.test_content = StringVar()
@@ -51,7 +56,7 @@ class Window():
 		self.test_entry = Entry(self.frame1, width=40, textvariable=self.test_content)
 
 		#提交按钮
-		self.submit = Button(self.frame1, text="提交", width=10, fg="green", command=self.test)
+		self.submit = Button(self.frame1, text="提交", width=10, fg="red", command=self.run_shell)
 
 		#结果显示框
 		self.text = ScrolledText(self.frame2, width=111, height=25, wrap=tk.WORD)
@@ -61,27 +66,54 @@ class Window():
 		self.frame2.grid(row=1,column=0)
 		self.frame1.grid_propagate(0)
 		self.frame2.grid_propagate(0)
+
+		#第一行
 		self.label_startip.grid(row=0 ,column=0, padx=5, pady=10)
 		self.entry_startip.grid(row=0, column=1, padx=5, pady=10)
 		self.label_endip.grid(row=0, column=2, padx=5, pady=10)
 		self.entry_endip.grid(row=0, column=3, padx=5, pady=10)
+
+		#第二行
 		self.label_user.grid(row=1, column=0, padx=5, pady=10)
 		self.entry_user.grid(row=1, column=1, padx=5, pady=10)
 		self.label_password.grid(row=1, column=2, padx=5, pady=10)
 		self.entry_password.grid(row=1, column=3, padx=5, pady=10)
+
+		#第三行
 		self.label_file.grid(row=2, column=0, padx=5, pady=10)
 		self.entry_file.grid(row=2, column=1, padx=5, pady=10)
 		self.choose_file.grid(row=2, column=2, padx=5, pady=10)
+
+		#第四行
 		self.label_file_savepath.grid(row=3, column=0, padx=5, pady=10)
 		self.entry_file_savepath.grid(row=3, column=1, padx=5, pady=10)
 		self.label_file_savepath_tips.grid(row=3, column=2, padx=5, pady=10)
+		self.button_uploadfile.grid(row=3, column=3, padx=5)
+
+		#第五行
 		self.test_label.grid(row=4, column=0, pady=5)
 		self.test_entry.grid(row=4, column=1, pady=5)
-		self.submit.grid(row=5, column=0, columnspan=5, pady=10)
+		self.submit.grid(row=4, column=2)
+
+		#文本框
 		self.text.grid(row=0, column=0)
 
 		mainloop()
 
+	def getall_ip(self):
+		all_ip = []
+		start_ip = self.start_ip.get()
+		end_ip = self.end_ip.get()
+		if start_ip == "" or end_ip == "":
+			messagebox.showinfo("Warning!", "ip地址为空！")
+		else:
+			try:
+				ip_three_bytes = start_ip.split('.')[0] + '.' + start_ip.split('.')[1] + '.' + start_ip.split('.')[2] + '.'
+				for i in range(int(start_ip.split('.')[3]), int(end_ip.split('.')[3])+1):
+					all_ip.append(ip_three_bytes + str(i))
+				return all_ip
+			except:
+				messagebox.showinfo("Warning!", "IP地址格式错误！")
 
 	def choose_file(self):
 		filename = askopenfilename(filetypes=[("All Files", "*.*")])
@@ -89,50 +121,48 @@ class Window():
 
 	def uploadfile(self):
 		ftp = FTP()
-		ftp.set_debuglevel(2)
-		allip = []
-		start_ip = self.start_ip.get()
-		end_ip = self.end_ip.get()
-		ip_three_bytes = start_ip.split('.')[0] + '.' + start_ip.split('.')[1] + '.' + start_ip.split('.')[2] + '.'
-		for i in range(int(start_ip.split('.')[3]), int(end_ip.split('.')[3])+1):
-			allip.append(ip_three_bytes + str(i))
+		fp = open(self.filepath.get(), 'rb')
+#		ftp.set_debuglevel(2)
+		allip = Window.getall_ip(self)
+		upload_filename = self.filepath.get().split('/')[-1]
+		file_des_path = self.entry_file_savepath.get() + upload_filename
+#		need_command = "ls " + file_des_path
+#		print (need_command)
+#		print (file_des_path)
+		if self.filepath.get() == "" or self.file_savepath.get() == "":
+			messagebox.showinfo("Warning!", "未选择文件|上传路径")
 		for ip in allip:
-			print (ip)
+#			print (ip)
 			ftp.connect(ip, 21)
-			ftp.login(self.user.get(), self.password.get())
-			fp = open(self.filepath.get(), 'rb')
-			ftp.storbinary('STOR ' + self.entry_file_savepath.get() + self.filepath.get().split('/')[-1], fp, 1024)
-			ftp.set_debuglevel(2)
-			ftp.close()
+			ftp.login(self.user.get(), self.password.get())		
+			try:
+				ftp.storbinary('STOR ' + file_des_path, fp, 1024)
+				ftp.set_debuglevel(2)
+				ftp.close()
+			except:
+				pass
+				
+		messagebox.showinfo("Warning!","上传完成!")
 
-<<<<<<< HEAD
-		messagebox.showinfo("Result", "上传完成！")
-
-	def test(self):
-		ssh = paramiko.SSHClient()
-		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		allip = []
-		start_ip = self.start_ip.get()
-		end_ip = self.end_ip.get()
-		if start_ip == '' or end_ip =='':
-			messagebox.showinfo("Warning!", "Iuput IP address")
-		ip_three_bytes = start_ip.split('.')[0] + '.' + start_ip.split('.')[1] + '.' + start_ip.split('.')[2] + '.'
-		for i in range(int(start_ip.split('.')[3]), int(end_ip.split('.')[3])+1):
-			allip.append(ip_three_bytes + str(i))
+	def run_shell(self):
+		input_command = self.test_content.get()
+		allip = Window.getall_ip(self)
 		if self.test_content.get() == '':
-			messagebox.showinfo("Warning!", "Input Something !!!")
+			messagebox.showinfo("Warning!", "输入指令！")
 		for host in allip:
-			ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
-			stdin, stdout, stderr = ssh.exec_command(self.test_content.get())
-			result = stdout.read()
+			result = Window.shell(self, host, input_command)
 			self.text.insert(INSERT, host + '\n')
 			self.text.insert(INSERT, result)
-			ssh.close()
+			self.text.insert(INSERT, '\n')
 		messagebox.showinfo("Result","OK!")
-=======
-		messagebox.showinfo("Result", "Upload Finished!")
 
->>>>>>> 88c19feb1498d4015366325bc7034c659540ae56
-
+	def shell(self, host, shell_command):
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
+		stdin, stdout, stderr = ssh.exec_command(shell_command)
+		result = stdout.read()
+		return result
+	
 if __name__ == '__main__':
 	Window()
