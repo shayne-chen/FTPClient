@@ -6,6 +6,7 @@ import paramiko
 from tkinter.scrolledtext import ScrolledText
 import tkinter as tk
 from tkinter import messagebox
+import multiprocessing
 
 class Window():
 
@@ -57,6 +58,7 @@ class Window():
 
 		#提交按钮
 		self.submit = Button(self.frame1, text="提交", width=10, fg="red", command=self.run_shell)
+		self.empty_button = Button(self.frame1, text="清空文本框", width=10, fg='red', command=self.delText)
 
 		#结果显示框
 		self.text = ScrolledText(self.frame2, width=111, height=25, wrap=tk.WORD)
@@ -94,6 +96,7 @@ class Window():
 		self.test_label.grid(row=4, column=0, pady=5)
 		self.test_entry.grid(row=4, column=1, pady=5)
 		self.submit.grid(row=4, column=2)
+		self.empty_button.grid(row=4, column=3)
 
 		#文本框
 		self.text.grid(row=0, column=0)
@@ -159,10 +162,20 @@ class Window():
 	def shell(self, host, shell_command):
 		ssh = paramiko.SSHClient()
 		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
-		stdin, stdout, stderr = ssh.exec_command(shell_command)
-		result = stdout.read()
-		return result
-	
+		try:
+			ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
+			stdin, stdout, stderr = ssh.exec_command(shell_command)
+			result = stdout.read()
+			return result
+		except:
+			pass
+		else:
+			return result
+		finally:
+			ssh.close()
+
+	def delText(self):
+		self.text.delete(1.0, END)
+
 if __name__ == '__main__':
 	Window()
