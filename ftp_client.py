@@ -7,16 +7,17 @@ from tkinter.scrolledtext import ScrolledText
 import tkinter as tk
 from tkinter import messagebox
 import multiprocessing
+import time
 
 class Window():
 
 	def __init__(self):
 		self.master = Tk()
 		self.master.title("FTPClient")
-		self.master.geometry("800x600")
+		self.master.geometry("1000x800")
 		self.master.resizable(width=False, height=False)
-		self.frame1 = Frame(width=800, height=230)
-		self.frame2 = Frame(width=800, height=370)
+		self.frame1 = Frame(width=1000, height=300)
+		self.frame2 = Frame(width=1000, height=500)
 
 		#起止IP设置
 		self.start_ip = StringVar()
@@ -56,12 +57,18 @@ class Window():
 		self.test_label = Label(self.frame1, text="输入指令", fg='red')
 		self.test_entry = Entry(self.frame1, width=40, textvariable=self.test_content)
 
-		#提交按钮
+		#按钮
 		self.submit = Button(self.frame1, text="提交", width=10, fg="red", command=self.run_shell)
 		self.empty_button = Button(self.frame1, text="清空文本框", width=10, fg='red', command=self.delText)
 
+		#监控资源的按钮
+		self.operateserver_button = Button(self.frame1, text="运维重启状况", width=10, fg='red', command=self.watch_operate)
+		self.vaserver_button = Button(self.frame1, text="分析重启状况", width=10, fg='red', command=self.watch_vaserver)
+		self.cpu_button = Button(self.frame1, text="CPU占用", width=10, fg='red', command=self.cpu_used)
+		self.memory_button = Button(self.frame1, text="内存占用", width=10, fg='red', command=self.memory_used)
+
 		#结果显示框
-		self.text = ScrolledText(self.frame2, width=111, height=25, wrap=tk.WORD)
+		self.text = ScrolledText(self.frame2, width=140, height=38, wrap=tk.WORD, bg='white')
 
 		#元件布局
 		self.frame1.grid(row=0, column=0)
@@ -98,6 +105,12 @@ class Window():
 		self.submit.grid(row=4, column=2)
 		self.empty_button.grid(row=4, column=3)
 
+		#第六行
+		self.operateserver_button.grid(row=5, column=0, padx=5, pady=5)
+		self.vaserver_button.grid(row=5, column=1, padx=5, pady=5)
+		self.cpu_button.grid(row=5, column=2, padx=5, pady=5)
+		self.memory_button.grid(row=5, column=3, padx=5, pady=5)			
+
 		#文本框
 		self.text.grid(row=0, column=0)
 
@@ -129,9 +142,6 @@ class Window():
 		allip = Window.getall_ip(self)
 		upload_filename = self.filepath.get().split('/')[-1]
 		file_des_path = self.entry_file_savepath.get() + upload_filename
-#		need_command = "ls " + file_des_path
-#		print (need_command)
-#		print (file_des_path)
 		if self.filepath.get() == "" or self.file_savepath.get() == "":
 			messagebox.showinfo("Warning!", "未选择文件|上传路径")
 		for ip in allip:
@@ -176,6 +186,93 @@ class Window():
 
 	def delText(self):
 		self.text.delete(1.0, END)
+
+	def watch_operate(self):
+		input_shell = "tail -n 1 /home/cx/scripts/operateserver.log"
+		print (type(input_shell))
+		allip = Window.getall_ip(self)
+		for host in allip:
+			result = Window.shell(self, host, input_shell)
+			result = str(result, encoding="utf-8")		
+			self.text.insert(INSERT, host + '\n')
+			self.text.insert(INSERT, "OperateServer重启次数: " + result.split(',')[0] + '\n')
+		messagebox.showinfo("Result", "OK!")
+
+	def watch_vaserver(self):
+		pass
+
+#	def cpu_used(self):
+#		cpu_cmd = "top -b -n 1|grep Cpu|cut -d ',' -f 2|cut -d 's' -f 1"
+#		print (type(cpu_cmd))
+#		allip = Window.getall_ip(self)
+#		for host in allip:
+#			cpu_result = Window.shell(self, host, cpu_cmd)
+#			print (cpu_result)
+#			print (type(cpu_result))
+#			cpu_result = str(cpu_result, encoding="utf-8")
+#			self.text.insert(INSERT, host + '\n')
+#			self.text.insert(INSERT, "CPU使用率：" + cpu_result.strip('\n') + "%" + '\n')
+#		messagebox.showinfo("Result", "OK!")
+
+	def cpu_used(self):
+		cpu_cmd = "head -n 1 /proc/stat"
+		allip = Window.getall_ip(self)
+		for host in allip:
+			cpu_result1 = Window.shell(self, host, cpu_cmd)
+			cpu_result1 = str(cpu_result1)
+			datas1 = cpu_result1.split(' ')
+			need_data1 = []
+			sum1 = 0
+			for data in datas1:
+				if data.isdigit():
+					need_data1.append(data)
+			for a in need_data1:
+				a = int(a)
+				sum1 = sum1 + a
+			time.sleep(1)
+			cpu_result2 = Window.shell(self, host, cpu_cmd)
+			cpu_result2 = str(cpu_result2)
+			datas2 = cpu_result2.split(' ')
+			need_data2 = []
+			sum2 = 0
+			for data in datas2:
+				if data.isdigit():
+					need_data2.append(data)
+			for b in need_data2:
+				b = int(b)
+				sum2 = sum2 + b
+
+			total = sum2 - sum1
+#			print(sum1)
+#			print(sum2)
+			idle = int(need_data2[3]) - int(need_data1[3])
+#			print (idle)
+			number = (total-idle)/total
+			percent = "%.2f%%"%(number*100)
+
+			self.text.insert(INSERT, '\n' + host + '\n')
+			self.text.insert(INSERT, "CPU使用率：" + percent + '\n')
+		messagebox.showinfo("Result", "OK!")
+
+	def memory_used(self):
+		total_mem_cmd = "top -b -n 1 |grep Mem|head -1|cut -d ',' -f 1|cut -d ':' -f 2|cut -d 't' -f 1"
+		used_mem_cmd = "top -b -n 1 |grep Mem|head -1|cut -d ',' -f 2|cut -d 'u' -f 1"
+		allip = Window.getall_ip(self)
+		for host in allip:
+			total_mem = Window.shell(self, host, total_mem_cmd)
+			used_mem = Window.shell(self, host, used_mem_cmd)
+#			print (total_mem)
+#			print (type(total_mem))
+#			print (used_mem)
+#			print (type(used_mem))
+			total_mem = str(total_mem, encoding="utf-8")
+			used_mem = str(used_mem, encoding="utf-8")
+			percent = float(used_mem)/float(total_mem)
+			percent = "%.2f%%"%(percent*100)
+#			print (type(percent))
+			self.text.insert(INSERT, '\n' + host + '\n')
+			self.text.insert(INSERT, "内存占用：" + percent + '\n')
+		messagebox.showinfo("Result", "OK!")
 
 if __name__ == '__main__':
 	Window()
