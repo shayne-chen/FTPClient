@@ -59,13 +59,12 @@ class Window():
 
 		#按钮
 		self.submit = Button(self.frame1, text="提交", width=10, fg="red", command=self.run_shell)
-		self.empty_button = Button(self.frame1, text="清空文本框", width=10, fg='red', command=self.delText)
+		self.empty_button = Button(self.frame1, text="清空文本框", width=10, fg='green', command=self.delText)
 
 		#监控资源的按钮
 		self.operateserver_button = Button(self.frame1, text="运维重启状况", width=10, fg='red', command=self.watch_operate)
 		self.vaserver_button = Button(self.frame1, text="分析重启状况", width=10, fg='red', command=self.watch_vaserver)
-		self.cpu_button = Button(self.frame1, text="CPU占用", width=10, fg='red', command=self.cpu_used)
-		self.memory_button = Button(self.frame1, text="内存占用", width=10, fg='red', command=self.memory_used)
+		self.cpu_mem_button = Button(self.frame1, text="CPU/内存占用", width=12, fg='red', command=self.cpu_memory_used)
 
 		#结果显示框
 		self.text = ScrolledText(self.frame2, width=140, height=38, wrap=tk.WORD, bg='white')
@@ -108,8 +107,7 @@ class Window():
 		#第六行
 		self.operateserver_button.grid(row=5, column=0, padx=5, pady=5)
 		self.vaserver_button.grid(row=5, column=1, padx=5, pady=5)
-		self.cpu_button.grid(row=5, column=2, padx=5, pady=5)
-		self.memory_button.grid(row=5, column=3, padx=5, pady=5)			
+		self.cpu_mem_button.grid(row=5, column=2, padx=5, pady=5)
 
 		#文本框
 		self.text.grid(row=0, column=0)
@@ -145,7 +143,6 @@ class Window():
 		if self.filepath.get() == "" or self.file_savepath.get() == "":
 			messagebox.showinfo("Warning!", "未选择文件|上传路径")
 		for ip in allip:
-#			print (ip)
 			ftp.connect(ip, 21)
 			ftp.login(self.user.get(), self.password.get())		
 			try:
@@ -164,9 +161,8 @@ class Window():
 			messagebox.showinfo("Warning!", "输入指令！")
 		for host in allip:
 			result = Window.shell(self, host, input_command)
-			self.text.insert(INSERT, host + '\n')
+			self.text.insert(INSERT, '\n' + host + '\n')
 			self.text.insert(INSERT, result)
-			self.text.insert(INSERT, '\n')
 		messagebox.showinfo("Result","OK!")
 
 	def shell(self, host, shell_command):
@@ -189,7 +185,6 @@ class Window():
 
 	def watch_operate(self):
 		input_shell = "tail -n 1 /home/cx/scripts/operateserver.log"
-		print (type(input_shell))
 		allip = Window.getall_ip(self)
 		for host in allip:
 			result = Window.shell(self, host, input_shell)
@@ -201,78 +196,54 @@ class Window():
 	def watch_vaserver(self):
 		pass
 
-#	def cpu_used(self):
-#		cpu_cmd = "top -b -n 1|grep Cpu|cut -d ',' -f 2|cut -d 's' -f 1"
-#		print (type(cpu_cmd))
-#		allip = Window.getall_ip(self)
-#		for host in allip:
-#			cpu_result = Window.shell(self, host, cpu_cmd)
-#			print (cpu_result)
-#			print (type(cpu_result))
-#			cpu_result = str(cpu_result, encoding="utf-8")
-#			self.text.insert(INSERT, host + '\n')
-#			self.text.insert(INSERT, "CPU使用率：" + cpu_result.strip('\n') + "%" + '\n')
-#		messagebox.showinfo("Result", "OK!")
-
-	def cpu_used(self):
-		cpu_cmd = "head -n 1 /proc/stat"
-		allip = Window.getall_ip(self)
-		for host in allip:
-			cpu_result1 = Window.shell(self, host, cpu_cmd)
-			cpu_result1 = str(cpu_result1)
-			datas1 = cpu_result1.split(' ')
-			need_data1 = []
-			sum1 = 0
-			for data in datas1:
-				if data.isdigit():
-					need_data1.append(data)
-			for a in need_data1:
-				a = int(a)
-				sum1 = sum1 + a
-			time.sleep(1)
-			cpu_result2 = Window.shell(self, host, cpu_cmd)
-			cpu_result2 = str(cpu_result2)
-			datas2 = cpu_result2.split(' ')
-			need_data2 = []
-			sum2 = 0
-			for data in datas2:
-				if data.isdigit():
-					need_data2.append(data)
-			for b in need_data2:
-				b = int(b)
-				sum2 = sum2 + b
-
-			total = sum2 - sum1
-#			print(sum1)
-#			print(sum2)
-			idle = int(need_data2[3]) - int(need_data1[3])
-#			print (idle)
-			number = (total-idle)/total
-			percent = "%.2f%%"%(number*100)
-
-			self.text.insert(INSERT, '\n' + host + '\n')
-			self.text.insert(INSERT, "CPU使用率：" + percent + '\n')
-		messagebox.showinfo("Result", "OK!")
-
-	def memory_used(self):
+	def cpu_memory_used(self):
 		total_mem_cmd = "top -b -n 1 |grep Mem|head -1|cut -d ',' -f 1|cut -d ':' -f 2|cut -d 't' -f 1"
 		used_mem_cmd = "top -b -n 1 |grep Mem|head -1|cut -d ',' -f 2|cut -d 'u' -f 1"
 		allip = Window.getall_ip(self)
 		for host in allip:
+			#内存占用
 			total_mem = Window.shell(self, host, total_mem_cmd)
 			used_mem = Window.shell(self, host, used_mem_cmd)
-#			print (total_mem)
-#			print (type(total_mem))
-#			print (used_mem)
-#			print (type(used_mem))
 			total_mem = str(total_mem, encoding="utf-8")
 			used_mem = str(used_mem, encoding="utf-8")
-			percent = float(used_mem)/float(total_mem)
-			percent = "%.2f%%"%(percent*100)
-#			print (type(percent))
+			mem_percent = float(used_mem)/float(total_mem)
+			mem_percent = "%.2f%%"%(mem_percent*100)
+			#CPU占用
+			need_data1, sum1 = Window.cpu(self, host)
+			time.sleep(0.5)
+			need_data2, sum2 = Window.cpu(self, host)
+			total = sum2 - sum1
+			idle = int(need_data2[3]) - int(need_data1[3])
+			number = (total-idle)/total
+			cpu_percent = "%.2f%%"%(number*100)
+
 			self.text.insert(INSERT, '\n' + host + '\n')
-			self.text.insert(INSERT, "内存占用：" + percent + '\n')
+			self.text.insert(INSERT, "CPU使用率：" + cpu_percent + '\n')
+			self.text.insert(INSERT, "内存占用：" + mem_percent + '\n')
 		messagebox.showinfo("Result", "OK!")
+
+	def cpu(self, host):
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		try:
+			ssh.connect(hostname=host, port=22, username=self.user.get(), password=self.password.get())
+			stdin, stdout, stderr = ssh.exec_command("head -n 1 /proc/stat")
+			cpu_result = str(stdout.read())
+			datas = cpu_result.split(' ')
+			need_data = []
+			sums = 0
+			for data in datas:
+				if data.isdigit():
+					need_data.append(data)
+					data = int(data)
+					sums = sums + data
+			return need_data, sums
+		except:
+			pass
+		else:
+			return need_data, sums
+		finally:
+			ssh.close()
 
 if __name__ == '__main__':
 	Window()
