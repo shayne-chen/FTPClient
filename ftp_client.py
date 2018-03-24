@@ -135,7 +135,7 @@ class Window():
 
 	def uploadfile(self):
 		ftp = FTP()
-		fp = open(self.filepath.get(), 'rb')
+#		fp = open(self.filepath.get(), 'rb')
 #		ftp.set_debuglevel(2)
 		allip = Window.getall_ip(self)
 		upload_filename = self.filepath.get().split('/')[-1]
@@ -143,14 +143,17 @@ class Window():
 		if self.filepath.get() == "" or self.file_savepath.get() == "":
 			messagebox.showinfo("Warning!", "未选择文件|上传路径")
 		for ip in allip:
+			fp = open(self.filepath.get(), 'rb')
 			ftp.connect(ip, 21)
 			ftp.login(self.user.get(), self.password.get())		
 			try:
+				self.text.insert(INSERT, ip + '\n')
 				ftp.storbinary('STOR ' + file_des_path, fp, 1024)
 				ftp.set_debuglevel(2)
-				ftp.close()
 			except:
 				pass
+			finally:
+				ftp.close()
 				
 		messagebox.showinfo("Warning!","上传完成!")
 
